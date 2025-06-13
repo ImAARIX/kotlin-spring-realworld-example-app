@@ -13,7 +13,7 @@ class LdapAuthService(
 ) {
 
     fun authenticate(username: String, password: String): Boolean {
-        val userDn = "cn=$username,$baseDn"
+        val userDn = "uid=$username,$baseDn"
         val env = Hashtable<String, String>().apply {
             put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory")
             put(Context.PROVIDER_URL, ldapUrl)
