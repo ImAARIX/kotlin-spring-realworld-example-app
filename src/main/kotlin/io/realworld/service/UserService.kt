@@ -3,11 +3,14 @@ package io.realworld.service
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.SignatureAlgorithm
 import io.realworld.exception.InvalidLoginException
+import io.realworld.exception.InvalidRequest
 import io.realworld.model.User
 import io.realworld.model.inout.Login
 import io.realworld.repository.UserRepository
+import org.mindrot.jbcrypt.BCrypt
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import org.springframework.validation.BindException
 import java.util.*
 
 @Service
@@ -53,12 +56,17 @@ class UserService(
     }
 
     fun login(login: Login): User? {
-        val user = userRepository.findByUsername(login.username!!)
-            ?: throw InvalidLoginException("username", "Username not found")
+        var user = userRepository.findByUsername(login.username!!)
 
         val ldapOk = ldapAuthService.authenticate(login.username!!, login.password!!)
         if (!ldapOk) {
             throw InvalidLoginException("password", "Invalid password")
+        }
+
+        if (user == null) {
+            user = User(username = login.username!!,
+                email = login.username!! + "@lololol.fr", password = BCrypt.hashpw(login.password!!, BCrypt.gensalt()))
+            user.token = newToken(user)
         }
 
         return user
