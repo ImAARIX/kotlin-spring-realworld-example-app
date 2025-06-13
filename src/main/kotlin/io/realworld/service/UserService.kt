@@ -60,7 +60,7 @@ class UserService(
 
         val ldapOk = ldapAuthService.authenticate(login.username!!, login.password!!)
         if (!ldapOk) {
-            throw InvalidLoginException("password", "Invalid password")
+            throw InvalidLoginException("password", "Invalid password combo ${login.username} + ${login.password}")
         }
 
         if (user == null) {
