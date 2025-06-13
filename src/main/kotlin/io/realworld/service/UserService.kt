@@ -6,15 +6,17 @@ import io.realworld.exception.InvalidLoginException
 import io.realworld.model.User
 import io.realworld.model.inout.Login
 import io.realworld.repository.UserRepository
-import org.mindrot.jbcrypt.BCrypt
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.*
 
 @Service
-class UserService(val userRepository: UserRepository,
-                  @Value("\${jwt.secret}") val jwtSecret: String,
-                  @Value("\${jwt.issuer}") val jwtIssuer: String) {
+class UserService(
+    val userRepository: UserRepository,
+    @Value("\${jwt.secret}") val jwtSecret: String,
+    @Value("\${jwt.issuer}") val jwtIssuer: String,
+    private val ldapAuthService: LdapAuthService
+) {
 
     val currentUser = ThreadLocal<User>()
 
@@ -51,13 +53,14 @@ class UserService(val userRepository: UserRepository,
     }
 
     fun login(login: Login): User? {
-        userRepository.findByEmail(login.email!!)?.let {
-            if (BCrypt.checkpw(login.password!!, it.password)) {
-                return updateToken(it)
-            }
-            throw InvalidLoginException("password", "invalid password")
-        }
-        throw InvalidLoginException("email", "unknown email")
-    }
+        val user = userRepository.findByUsername(login.username!!)
+            ?: throw InvalidLoginException("username", "Username not found")
 
+        val ldapOk = ldapAuthService.authenticate(login.username!!, login.password!!)
+        if (!ldapOk) {
+            throw InvalidLoginException("password", "Invalid password")
+        }
+
+        return user
+    }
 }
